@@ -2,7 +2,7 @@
 # Makefile for riscv-tests/isa
 #-----------------------------------------------------------------------
 
-XLEN ?= 64
+XLEN ?= 32
 
 src_dir := .
 
@@ -33,16 +33,21 @@ default: all
 # Build rules
 #--------------------------------------------------------------------
 
-RISCV_PREFIX ?= riscv$(XLEN)-unknown-elf-
+RISCV_PREFIX ?= riscv64-elf-
 RISCV_GCC ?= $(RISCV_PREFIX)gcc
 RISCV_GCC_OPTS ?= -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles
 RISCV_OBJDUMP ?= $(RISCV_PREFIX)objdump --disassemble-all --disassemble-zeroes --section=.text --section=.text.startup --section=.text.init --section=.data
+RISCV_OBJCOPY ?= $(RISCV_PREFIX)objcopy -O binary
 RISCV_SIM ?= spike
 
 vpath %.S $(src_dir)
 
 #------------------------------------------------------------
 # Build assembly tests
+
+%.bin: %
+	$(RISCV_OBJCOPY) $< $@
+	chmod -x $@
 
 %.dump: %
 	$(RISCV_OBJDUMP) $< > $@
@@ -63,9 +68,11 @@ $$($(1)_v_tests): $(1)-v-%: $(1)/%.S
 	$$(RISCV_GCC) $(2) $$(RISCV_GCC_OPTS) -DENTROPY=0x$$(shell echo \$$@ | md5sum | cut -c 1-7) -std=gnu99 -O2 -I$(src_dir)/../env/v -I$(src_dir)/macros/scalar -T$(src_dir)/../env/v/link.ld $(src_dir)/../env/v/entry.S $(src_dir)/../env/v/*.c $$< -o $$@
 $(1)_tests += $$($(1)_v_tests)
 
+$(1)_tests_bin = $$(addsuffix .bin, $$($(1)_tests))
+
 $(1)_tests_dump = $$(addsuffix .dump, $$($(1)_tests))
 
-$(1): $$($(1)_tests_dump)
+$(1): $$($(1)_tests_bin) $$($(1)_tests_dump)
 
 .PHONY: $(1)
 
@@ -94,6 +101,7 @@ $(eval $(call compile_template,rv64si,-march=rv64g -mabi=lp64))
 $(eval $(call compile_template,rv64mi,-march=rv64g -mabi=lp64))
 endif
 
+tests_bin = $(addsuffix .bin, $(tests))
 tests_dump = $(addsuffix .dump, $(tests))
 tests_hex = $(addsuffix .hex, $(tests))
 tests_out = $(addsuffix .out, $(spike_tests))
@@ -101,12 +109,12 @@ tests32_out = $(addsuffix .out32, $(spike32_tests))
 
 run: $(tests_out) $(tests32_out)
 
-junk += $(tests) $(tests_dump) $(tests_hex) $(tests_out) $(tests32_out)
+junk += $(tests) $(tests_bin) $(tests_dump) $(tests_hex) $(tests_out) $(tests32_out)
 
 #------------------------------------------------------------
 # Default
 
-all: $(tests_dump)
+all: $(tests_bin) $(tests_dump)
 
 #------------------------------------------------------------
 # Clean up
