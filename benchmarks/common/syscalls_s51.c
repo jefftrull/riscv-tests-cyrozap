@@ -47,7 +47,7 @@ void abort()
 static uint8_t volatile * const sbuf = (uint8_t volatile *)0xC0000099;
 
 // fake syscall. Handle as few things as possible
-static uintptr_t syscall(uintptr_t which, uint64_t arg0, uint64_t arg1, uint64_t arg2)
+static uintptr_t syscall(uintptr_t which, uintptr_t arg0, uintptr_t arg1, uintptr_t arg2)
 {
     if ((which == SYS_write) && (arg0 == 1))
     {
