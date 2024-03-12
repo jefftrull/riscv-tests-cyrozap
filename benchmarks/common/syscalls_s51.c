@@ -9,6 +9,8 @@
 #include "util.h"
 
 #define SYS_write 64
+#define SYS_memcpy 1024
+#define SYS_memset 1025
 
 #undef strcmp
 
@@ -49,6 +51,17 @@ static uint8_t volatile * const sbuf = (uint8_t volatile *)0xC0000099;
 // fake syscall. Handle as few things as possible
 static uintptr_t syscall(uintptr_t which, uintptr_t arg0, uintptr_t arg1, uintptr_t arg2)
 {
+    if ((which == SYS_memset) || (which == SYS_memcpy))
+    {
+        register uint32_t a7 asm ("a7") = which;
+        register uint32_t a0 asm ("a0") = arg0;
+        register uint32_t a1 asm ("a1") = arg1;
+        register uint32_t a2 asm ("a2") = arg2;
+
+        asm volatile("ecall" :: "r"(a7), "r"(a0), "r"(a1), "r"(a2) );
+        return arg0;
+    }
+
     if ((which == SYS_write) && (arg0 == 1))
     {
         uint64_t result = arg2;  // amount written (I think?)
@@ -341,37 +354,14 @@ int sprintf(char* str, const char* fmt, ...)
 
 void* memcpy(void* dest, const void* src, size_t len)
 {
-  if ((((uintptr_t)dest | (uintptr_t)src | len) & (sizeof(uintptr_t)-1)) == 0) {
-    const uintptr_t* s = src;
-    uintptr_t *d = dest;
-    while (d < (uintptr_t*)(dest + len))
-      *d++ = *s++;
-  } else {
-    const char* s = src;
-    char *d = dest;
-    while (d < (char*)(dest + len))
-      *d++ = *s++;
-  }
-  return dest;
+    return (void*)syscall(SYS_memcpy, (uintptr_t)dest, (uintptr_t)src, len);
+
 }
 
 void* memset(void* dest, int byte, size_t len)
 {
-  if ((((uintptr_t)dest | len) & (sizeof(uintptr_t)-1)) == 0) {
-    uintptr_t word = byte & 0xFF;
-    word |= word << 8;
-    word |= word << 16;
-    word |= word << 16 << 16;
-
-    uintptr_t *d = dest;
-    while (d < (uintptr_t*)(dest + len))
-      *d++ = word;
-  } else {
-    char *d = dest;
-    while (d < (char*)(dest + len))
-      *d++ = byte;
-  }
-  return dest;
+    // use special system call
+    return (void*)syscall(SYS_memset, (uintptr_t)dest, byte, len);
 }
 
 size_t strlen(const char *s)
