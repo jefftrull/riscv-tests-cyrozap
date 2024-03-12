@@ -58,7 +58,7 @@ $(1).riscv: $(wildcard $(src_dir)/$(1)/*) $(wildcard $(src_dir)/common/*)
 	$$(RISCV_GCC) $$(incs) $$(RISCV_GCC_OPTS) -o $$@ $(wildcard $(src_dir)/$(1)/*.c) $(wildcard $(src_dir)/common/*.c) $(wildcard $(src_dir)/common/*.S) $$(RISCV_LINK_OPTS)
 # object files named .elf consistent with examples
 $(1).elf: $(wildcard $(src_dir)/$(1)/*) $(src_dir)/common/syscalls_s51.c
-	$$(RISCV_GCC) $$(incs) $$(RISCV_S51_GCC_OPTS) -o $$@ $(wildcard $(src_dir)/$(1)/*.c) $(src_dir)/common/syscalls_s51.c $$(RISCV_S51_LINK_OPTS) ../../../examples/c/init.o
+	$$(RISCV_GCC) $$(incs) $$(RISCV_S51_GCC_OPTS) -o $$@ $(wildcard $(src_dir)/$(1)/*.c) $(src_dir)/common/syscalls_s51.c $$(RISCV_S51_LINK_OPTS) ../../../examples/c/init.S -Wl,-Map=$(1).map
 endef
 
 $(foreach bmark,$(bmarks),$(eval $(call compile_template,$(bmark))))
