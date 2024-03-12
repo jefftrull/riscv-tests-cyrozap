@@ -91,6 +91,7 @@ junk += $(bmarks_riscv_bin) $(bmarks_riscv_dump) $(bmarks_riscv_hex) $(bmarks_ri
 %.combined.bin: ../../../src/rv51.bin %.bin
 	cat $^ > $@
 
+.PHONY: ../../../src/rv51.bin
 ../../../src/rv51.bin:
 	make -C ../../../src
 
